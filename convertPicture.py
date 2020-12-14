@@ -44,8 +44,13 @@ def grid_to_letters(img_path, is_ws):
     MIN_CONTOUR_AREA = 10   
     img = cv2.imread(img_path) 
     img_copy = img.copy()
-    dim = (img.shape[1] , img.shape[0]) 
+    if is_ws:
+        dim = (img.shape[1] , img.shape[0]*2) 
+    else:
+        # Make a wider distance between stuff so letters are more obvious
+        dim = (img.shape[1] , img.shape[0]) 
     img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA) 
+    cv2.imwrite("zzWider.PNG", img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     model = Net()
     model.load_state_dict(torch.load('model/letterModel.dat', map_location='cpu'))
@@ -59,55 +64,79 @@ def grid_to_letters(img_path, is_ws):
     img_thresh = cv2.adaptiveThreshold(gray,255,1,1,11,2)
     Contours, Hierarchy = cv2.findContours(img_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     count = 0
-    word_search = []
-    final_word_search = []
-    current_row = []
+    current_grids = []
+    grids_arr = []
+    final_grids_arr = []
+    im_es = 2 if is_ws else 2
+
     prev_y = -1
     prev_x = -1
+    
     for contour in Contours:
         if cv2.contourArea(contour) > MIN_CONTOUR_AREA:
             [X, Y, W, H] = cv2.boundingRect(contour)
-            print(X,Y)
-            cv2.rectangle(img, (X, Y), (X + W, Y + H), (0,0,255), 2)
-            roi = gray[Y-2:Y+H+2,X-2:X+W+2]
-            roi = cv2.bitwise_not(roi)
-            #cv2.imwrite(f'images/output/w{count}.PNG', roi)
-            roi_re = cv2.resize(roi,(28,28))
-            roi_torch = transform(roi_re)
-            #cv2.imwrite(f'images/output/t{count}.PNG', roi_re)
-                
+            cv2.rectangle(img, (X-im_es, Y-im_es), (X + W + im_es, Y + H + im_es), (0,0,255), 2)
+            
 
             if is_ws:    
                 if prev_y != -1 and abs(prev_y - Y) > 10:
-                    word_search.append(current_row[::-1])
-                    current_row = []
+                    current_grids.sort(key=lambda x: (x[0], x[1]))
+                    grids_arr.append(current_grids)
+                    current_grids = []
             
             else:
-                if (prev_y != -1 and prev_x != -1) and (abs(prev_y - Y) > 10) or (abs(prev_x - X) > 25):
-                    word = ''.join(current_row[::-1])
-                    if word != '':
-                        word_search.append(word)
-                        current_row = []
+                if (prev_y != -1 and prev_x != -1) and (abs(prev_y - Y) > 10) or (abs(prev_x - X) > 45):
+                    current_grids.sort(key=lambda x: (x[0], x[1]))
+                    grids_arr.append(current_grids)
+                    current_grids = []
             
-            letter = predict_photo(roi_torch, model)
+
+
             prev_y = Y
             prev_x = X
-            current_row.append(letter)
+        
+            if is_ws:
+                current_grids.append([X, Y, W, H])
+            else:
+                #current_grids.append([X-im_es, Y-im_es, W+im_es*2, H+im_es*2])
+                current_grids.append([X, Y, W, H])
 
             count += 1
 
-    
-    if is_ws:
-        word_search.append(current_row[::-1])
-        for w in reversed(word_search):
-            final_word_search.append(w)
-    else:
-        word = ''.join(current_row[::-1])
-        word_search.append(word)
-        final_word_search = sorted(word_search)
+    if current_grids != []:
+        current_grids.sort(key=lambda x: (x[0], x[1]))
+        grids_arr.append(current_grids)
 
+    for g in reversed(grids_arr):
+        if len(g) > 0:
+            final_grids_arr.append(g)
+    
+    
+    
+    final_word_search = []
+
+    i = 0
+    for row in final_grids_arr:
+        final_word_search.append(['0' for k in row])
+        for j in range(len(row)):
+            x, y, w, h = row[j][0], row[j][1], row[j][2], row[j][3]
+            roi = gray[y-3:y+h+3, x-3:x+w+3]
+            
+
+            roi = cv2.bitwise_not(roi)
+            roi_re = cv2.resize(roi,(28,28))
+            #cv2.imwrite(f'images/output/w{i*25 + j}.PNG',  gray[y-2:y+h+2, x-2:x+w+2])
+            roi_torch = transform(roi_re)
+
+            letter = predict_photo(roi_torch, model)
+            final_word_search[i][j] = letter
+        i += 1
+
+    
+   
     cv2.imwrite("images/output/full.PNG", img)
 
-    return final_word_search
+    return final_word_search, final_grids_arr
+    
             
         

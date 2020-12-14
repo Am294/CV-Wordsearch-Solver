@@ -47,7 +47,6 @@ def grid_to_letters(img_path, is_ws):
     if is_ws:
         dim = (img.shape[1] , img.shape[0]*2) 
     else:
-        # Make a wider distance between stuff so letters are more obvious
         dim = (img.shape[1] , img.shape[0]) 
     img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA) 
     cv2.imwrite("zzWider.PNG", img)
@@ -58,11 +57,14 @@ def grid_to_letters(img_path, is_ws):
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.1307,), (0.3081,))
         ])
-    
-    #dst = cv2.Canny(gray, 0, MIN_CONTOUR_AREA)   
-    #blured = cv2.blur(dst, (5,5), 0)    
+       
     img_thresh = cv2.adaptiveThreshold(gray,255,1,1,11,2)
+    #ret, img_thresh = cv2.threshold(gray, 127, 255, 0)
+    
+
     Contours, Hierarchy = cv2.findContours(img_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+    
     count = 0
     current_grids = []
     grids_arr = []
@@ -76,8 +78,6 @@ def grid_to_letters(img_path, is_ws):
         if cv2.contourArea(contour) > MIN_CONTOUR_AREA:
             [X, Y, W, H] = cv2.boundingRect(contour)
             cv2.rectangle(img, (X-im_es, Y-im_es), (X + W + im_es, Y + H + im_es), (0,0,255), 2)
-            
-
             if is_ws:    
                 if prev_y != -1 and abs(prev_y - Y) > 10:
                     current_grids.sort(key=lambda x: (x[0], x[1]))
@@ -112,7 +112,7 @@ def grid_to_letters(img_path, is_ws):
             final_grids_arr.append(g)
     
     
-    
+
     final_word_search = []
 
     i = 0
@@ -120,12 +120,11 @@ def grid_to_letters(img_path, is_ws):
         final_word_search.append(['0' for k in row])
         for j in range(len(row)):
             x, y, w, h = row[j][0], row[j][1], row[j][2], row[j][3]
-            roi = gray[y-3:y+h+3, x-3:x+w+3]
-            
-
+            roi = gray[y-4:y+h+4, x-3:x+w+3]
+            #roi =  gray[y:y+h, x:x+w]
             roi = cv2.bitwise_not(roi)
             roi_re = cv2.resize(roi,(28,28))
-            #cv2.imwrite(f'images/output/w{i*25 + j}.PNG',  gray[y-2:y+h+2, x-2:x+w+2])
+            #cv2.imwrite(f'images/output/w{i*25 + j}.PNG', roi_re)
             roi_torch = transform(roi_re)
 
             letter = predict_photo(roi_torch, model)

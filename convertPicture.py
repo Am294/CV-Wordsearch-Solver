@@ -133,7 +133,7 @@ def grid_to_letters(img_path, is_ws):
 
     
    
-    cv2.imwrite("images/output/full.PNG", img)
+    cv2.imwrite(f"images/output/bounding{is_ws}.PNG", img)
 
     return final_word_search, final_grids_arr
     

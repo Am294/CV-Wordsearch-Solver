@@ -2,18 +2,18 @@ import sys
 import cv2
 from convertPicture import grid_to_letters
 from wordsearch import solve_word_search
+from PIL import Image
 
 def change_background_diag(color, img, x, y, w, h, first, letter):
     y = max(0, y-10)
     outer_end = min(y+h+20, img.shape[0])
     inner_end = min(x+w, img.shape[1])
-    print(first, letter)
     if letter == "I":
-        change1, change2 = 12, 22
+        change1, change2 = 5, 29
     elif first:
-        change1, change2 = -5, 5
+        change1, change2 = -12, 12
     else:
-        change1, change2 = -5, 5
+        change1, change2 = -12, 12
     while  y < outer_end and x < inner_end-5:
         for i in range(x+change1, x+change2):
             if sum(img[y, i, :]) > 725:
@@ -30,6 +30,25 @@ def change_background(color, img, x, y, w, h):
             if sum(img[i, j, :]) > 725:
                 img[i, j, :] = color
 
+def combine_photos(puzzle, words):
+    images = [Image.open(x) for x in [puzzle, words]]
+    widths, heights = zip(*(i.size for i in images))
+
+    total_height = sum(heights)
+    max_width = max(widths)
+
+    for i in range(len(images)):
+        if images[i].size[0] < max_width:
+            images[i] = images[i].resize((max_width, images[i].size[1]))
+
+    new_im = Image.new('RGB', (max_width, total_height))
+    y_offset = 0
+    for im in images:
+        new_im.paste(im, (0, y_offset))
+        y_offset += im.size[1]
+
+    new_im.save('images/output/combined.PNG')
+
 if __name__ == "__main__":
     puzzle_pth = sys.argv[1]
     words_pth = sys.argv[2]
@@ -38,7 +57,7 @@ if __name__ == "__main__":
     words_arr, _ = grid_to_letters(words_pth, False)
     words = [''.join(w) for w in words_arr]
 
-   
+    
     solved_puzzle = solve_word_search(puzzle, words)
 
     
@@ -89,10 +108,7 @@ if __name__ == "__main__":
                 
  
     img = cv2.resize(img, (img.shape[1], img.shape[0]//2), interpolation = cv2.INTER_AREA) 
-    cv2.imwrite(f'zzz.PNG', img)
+    cv2.imwrite(f'images/output/final.PNG', img)
 
+    combine_photos('images/output/final.PNG', words_pth)
 
-
-    # Program is good at puzzles with normal font and words that are spaced out
-    # Finally do soemthing to make highling look better. 
-    #  This will be done by having every charecter check left, up, and up left. If another thing is ther color in between area 

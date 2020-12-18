@@ -51,10 +51,10 @@ def grid_to_letters(img_path, is_ws):
     cv2.imwrite("zzWider.PNG", img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     model = Net()
-    model.load_state_dict(torch.load('model/letterModel3.dat', map_location='cpu'))
+    model.load_state_dict(torch.load('model/letterModel4.dat', map_location='cpu'))
     transform=torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.1307,), (0.3081,))
+        torchvision.transforms.Normalize((0.5000,), (0.1500,))
         ])
        
     img_thresh = cv2.adaptiveThreshold(gray,255,1,1,11,2)

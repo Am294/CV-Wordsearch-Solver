@@ -11,26 +11,25 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.conv1 = nn.Conv2d(1, 32, 3, 1)
         self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout1 = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 26)
+        self.conv3 = nn.Conv2d(64, 128, 3, 1)
+        self.lin1 = nn.Linear(1152, 128)
+        self.lin2 = nn.Linear(128, 26)
+        self.avgpool = nn.AvgPool2d(kernel_size=2, stride=2)
 
     def forward(self, x):
         x = self.conv1(x)
-        x = F.relu(x)
-        x = self.conv2(x)
-        x = F.relu(x)
+        x = F.tanh(x)
         x = F.max_pool2d(x, 2)
-        x = self.dropout1(x)
+        x = self.conv2(x)
+        x = F.tanh(x)
+        x = F.max_pool2d(x, 2)
+        x = self.conv3(x)
+        x = F.tanh(x)
         x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        x = F.relu(x)
-        x = self.dropout1(x)
-        x = self.fc2(x)
-        x = self.dropout1(x)
-        output = F.log_softmax(x, dim=1)
-        return output
+        x = self.lin1(x)
+        x = F.tanh(x)
+        x = self.lin2(x)
+        return F.log_softmax(x, dim=1)
 
 def predict_photo(img, model):
     model.eval()
@@ -52,13 +51,14 @@ def grid_to_letters(img_path, is_ws):
     cv2.imwrite("zzWider.PNG", img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     model = Net()
-    model.load_state_dict(torch.load('model/letterModel.dat', map_location='cpu'))
+    model.load_state_dict(torch.load('model/letterModel3.dat', map_location='cpu'))
     transform=torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.1307,), (0.3081,))
         ])
        
     img_thresh = cv2.adaptiveThreshold(gray,255,1,1,11,2)
+    #cv2.imwrite(f'images/output/thresh{is_ws}.PNG', img_thresh)
     #ret, img_thresh = cv2.threshold(gray, 127, 255, 0)
     
 
@@ -120,11 +120,16 @@ def grid_to_letters(img_path, is_ws):
         final_word_search.append(['0' for k in row])
         for j in range(len(row)):
             x, y, w, h = row[j][0], row[j][1], row[j][2], row[j][3]
-            roi = gray[y-4:y+h+4, x-3:x+w+3]
+            if is_ws:
+                roi = gray[y-6:y+h+6, x-4:x+w+4]
+            else:
+                roi = gray[y-4:y+h+4, x-3:x+w+3]
             #roi =  gray[y:y+h, x:x+w]
             roi = cv2.bitwise_not(roi)
             roi_re = cv2.resize(roi,(28,28))
-            #cv2.imwrite(f'images/output/w{i*25 + j}.PNG', roi_re)
+            if is_ws:
+                cv2.imwrite(f'images/output/w{i*25 + j}.PNG', roi_re)
+                pass
             roi_torch = transform(roi_re)
 
             letter = predict_photo(roi_torch, model)

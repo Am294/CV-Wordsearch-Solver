@@ -57,6 +57,12 @@ if __name__ == "__main__":
     words_arr, _ = grid_to_letters(words_pth, False)
     words = [''.join(w) for w in words_arr]
 
+    for p in puzzle:
+        print(p)
+    for w in words:
+        print(w)
+
+
     
     solved_puzzle = solve_word_search(puzzle, words)
 

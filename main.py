@@ -4,6 +4,7 @@ from convertPicture import grid_to_letters
 from wordsearch import solve_word_search
 from PIL import Image
 
+# Change background color for diagonal
 def change_background_diag(color, img, x, y, w, h, first, letter):
     y = max(0, y-10)
     outer_end = min(y+h+20, img.shape[0])
@@ -21,7 +22,7 @@ def change_background_diag(color, img, x, y, w, h, first, letter):
         y += 2
         x += 1
 
-
+# Changes background color for non-diagonal
 def change_background(color, img, x, y, w, h):
     outer_end = min(y+h, img.shape[0])
     inner_end = min(x+w, img.shape[1])
@@ -30,6 +31,7 @@ def change_background(color, img, x, y, w, h):
             if sum(img[i, j, :]) > 725:
                 img[i, j, :] = color
 
+# Combines photos for the puzzle and words
 def combine_photos(puzzle, words):
     images = [Image.open(x) for x in [puzzle, words]]
     widths, heights = zip(*(i.size for i in images))
@@ -57,25 +59,18 @@ if __name__ == "__main__":
     words_arr, _ = grid_to_letters(words_pth, False)
     words = [''.join(w) for w in words_arr]
 
-    for p in puzzle:
-        print(p)
-    for w in words:
-        print(w)
-
-
     
     solved_puzzle = solve_word_search(puzzle, words)
 
     
     img = cv2.imread(puzzle_pth)
     img = cv2.resize(img, (img.shape[1], img.shape[0] * 2), interpolation = cv2.INTER_AREA) 
-    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    #print(gray.shape)
-    #cv2.imwrite('zzz.PNG', gray[471:471+18, 740:740+18])
+
 
     colors = [[239, 255, 0], [	57, 255, 20]]
     
    
+    # Colors in characters of solved puzzle
     for i in range(len(solved_puzzle)):
         for j in range(len(solved_puzzle[0])):
             if solved_puzzle[i][j][0] != '0':

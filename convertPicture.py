@@ -48,7 +48,6 @@ def grid_to_letters(img_path, is_ws):
     else:
         dim = (img.shape[1] , img.shape[0]) 
     img = cv2.resize(img, dim, interpolation = cv2.INTER_AREA) 
-    cv2.imwrite("zzWider.PNG", img)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     model = Net()
     model.load_state_dict(torch.load('model/letterModel4.dat', map_location='cpu'))
@@ -58,10 +57,7 @@ def grid_to_letters(img_path, is_ws):
         ])
        
     img_thresh = cv2.adaptiveThreshold(gray,255,1,1,11,2)
-    #cv2.imwrite(f'images/output/thresh{is_ws}.PNG', img_thresh)
-    #ret, img_thresh = cv2.threshold(gray, 127, 255, 0)
     
-
     Contours, Hierarchy = cv2.findContours(img_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
     
@@ -69,7 +65,8 @@ def grid_to_letters(img_path, is_ws):
     current_grids = []
     grids_arr = []
     final_grids_arr = []
-    im_es = 2 if is_ws else 2
+    # Variable for expanding bounding box
+    im_es = 2
 
     prev_y = -1
     prev_x = -1
@@ -98,7 +95,6 @@ def grid_to_letters(img_path, is_ws):
             if is_ws:
                 current_grids.append([X, Y, W, H])
             else:
-                #current_grids.append([X-im_es, Y-im_es, W+im_es*2, H+im_es*2])
                 current_grids.append([X, Y, W, H])
 
             count += 1
@@ -124,7 +120,6 @@ def grid_to_letters(img_path, is_ws):
                 roi = gray[y-6:y+h+6, x-4:x+w+4]
             else:
                 roi = gray[y-4:y+h+4, x-3:x+w+3]
-            #roi =  gray[y:y+h, x:x+w]
             roi = cv2.bitwise_not(roi)
             roi_re = cv2.resize(roi,(28,28))
             if is_ws:
